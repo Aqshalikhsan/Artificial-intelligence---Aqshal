@@ -1,1 +1,310 @@
+#!/usr/bin/env python3
+"""
+Artificial Intelligence - Main Module
+Author: Aqshal Ikhsan
+Email: aksalikhsan@gmail.com
 
+This module provides core AI functionality including:
+- Search algorithms (BFS, DFS, A*, etc.)
+- Machine Learning utilities
+- Data processing helpers
+"""
+
+import numpy as np
+import pandas as pd
+from typing import List, Tuple, Optional, Dict, Any
+from collections import deque
+import heapq
+
+
+class SearchAlgorithms:
+    """Implementation of various search algorithms."""
+    
+    @staticmethod
+    def bfs(graph: Dict[str, List[str]], start: str, goal: str) -> Optional[List[str]]:
+        """
+        Breadth-First Search algorithm.
+        
+        Args:
+            graph: Dictionary representing the graph structure
+            start: Starting node
+            goal: Goal node
+            
+        Returns:
+            Path from start to goal, or None if no path exists
+        """
+        if start == goal:
+            return [start]
+        
+        visited = set()
+        queue = deque([(start, [start])])
+        
+        while queue:
+            node, path = queue.popleft()
+            
+            if node in visited:
+                continue
+                
+            visited.add(node)
+            
+            for neighbor in graph.get(node, []):
+                if neighbor == goal:
+                    return path + [neighbor]
+                    
+                if neighbor not in visited:
+                    queue.append((neighbor, path + [neighbor]))
+        
+        return None
+    
+    @staticmethod
+    def dfs(graph: Dict[str, List[str]], start: str, goal: str) -> Optional[List[str]]:
+        """
+        Depth-First Search algorithm.
+        
+        Args:
+            graph: Dictionary representing the graph structure
+            start: Starting node
+            goal: Goal node
+            
+        Returns:
+            Path from start to goal, or None if no path exists
+        """
+        visited = set()
+        stack = [(start, [start])]
+        
+        while stack:
+            node, path = stack.pop()
+            
+            if node == goal:
+                return path
+                
+            if node in visited:
+                continue
+                
+            visited.add(node)
+            
+            for neighbor in graph.get(node, []):
+                if neighbor not in visited:
+                    stack.append((neighbor, path + [neighbor]))
+        
+        return None
+    
+    @staticmethod
+    def astar(graph: Dict[str, List[Tuple[str, float]]], 
+              start: str, 
+              goal: str, 
+              heuristic: Dict[str, float]) -> Optional[List[str]]:
+        """
+        A* Search algorithm.
+        
+        Args:
+            graph: Dictionary with nodes and (neighbor, cost) tuples
+            start: Starting node
+            goal: Goal node
+            heuristic: Dictionary mapping nodes to heuristic values
+            
+        Returns:
+            Path from start to goal, or None if no path exists
+        """
+        open_set = [(0 + heuristic.get(start, 0), 0, start, [start])]
+        visited = set()
+        
+        while open_set:
+            f_score, g_score, node, path = heapq.heappop(open_set)
+            
+            if node == goal:
+                return path
+                
+            if node in visited:
+                continue
+                
+            visited.add(node)
+            
+            for neighbor, cost in graph.get(node, []):
+                if neighbor not in visited:
+                    new_g = g_score + cost
+                    new_f = new_g + heuristic.get(neighbor, 0)
+                    heapq.heappush(open_set, (new_f, new_g, neighbor, path + [neighbor]))
+        
+        return None
+
+
+class MachineLearning:
+    """Machine Learning utilities and helpers."""
+    
+    @staticmethod
+    def train_test_split(X: np.ndarray, 
+                        y: np.ndarray, 
+                        test_size: float = 0.2, 
+                        random_state: Optional[int] = None) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """
+        Split data into training and testing sets.
+        
+        Args:
+            X: Feature matrix
+            y: Target vector
+            test_size: Proportion of data for testing (0-1)
+            random_state: Random seed for reproducibility
+            
+        Returns:
+            X_train, X_test, y_train, y_test
+        """
+        if random_state is not None:
+            np.random.seed(random_state)
+        
+        n_samples = len(X)
+        n_test = int(n_samples * test_size)
+        
+        indices = np.random.permutation(n_samples)
+        test_idx = indices[:n_test]
+        train_idx = indices[n_test:]
+        
+        return X[train_idx], X[test_idx], y[train_idx], y[test_idx]
+    
+    @staticmethod
+    def normalize(X: np.ndarray) -> np.ndarray:
+        """
+        Normalize features to [0, 1] range.
+        
+        Args:
+            X: Feature matrix
+            
+        Returns:
+            Normalized feature matrix
+        """
+        X_min = X.min(axis=0)
+        X_max = X.max(axis=0)
+        return (X - X_min) / (X_max - X_min + 1e-8)
+    
+    @staticmethod
+    def standardize(X: np.ndarray) -> np.ndarray:
+        """
+        Standardize features to mean=0, std=1.
+        
+        Args:
+            X: Feature matrix
+            
+        Returns:
+            Standardized feature matrix
+        """
+        mean = X.mean(axis=0)
+        std = X.std(axis=0)
+        return (X - mean) / (std + 1e-8)
+
+
+class DataProcessor:
+    """Data processing and manipulation utilities."""
+    
+    @staticmethod
+    def load_csv(filepath: str) -> pd.DataFrame:
+        """
+        Load data from CSV file.
+        
+        Args:
+            filepath: Path to CSV file
+            
+        Returns:
+            DataFrame containing the data
+        """
+        return pd.read_csv(filepath)
+    
+    @staticmethod
+    def handle_missing_values(df: pd.DataFrame, 
+                             strategy: str = 'mean') -> pd.DataFrame:
+        """
+        Handle missing values in DataFrame.
+        
+        Args:
+            df: Input DataFrame
+            strategy: Strategy for handling missing values ('mean', 'median', 'drop')
+            
+        Returns:
+            DataFrame with handled missing values
+        """
+        df_copy = df.copy()
+        
+        if strategy == 'mean':
+            return df_copy.fillna(df_copy.mean())
+        elif strategy == 'median':
+            return df_copy.fillna(df_copy.median())
+        elif strategy == 'drop':
+            return df_copy.dropna()
+        else:
+            raise ValueError(f"Unknown strategy: {strategy}")
+    
+    @staticmethod
+    def encode_categorical(df: pd.DataFrame, 
+                          columns: List[str]) -> pd.DataFrame:
+        """
+        Encode categorical variables using one-hot encoding.
+        
+        Args:
+            df: Input DataFrame
+            columns: List of column names to encode
+            
+        Returns:
+            DataFrame with encoded categorical variables
+        """
+        return pd.get_dummies(df, columns=columns)
+
+
+def main():
+    """Main function demonstrating AI module usage."""
+    print("=" * 60)
+    print("Artificial Intelligence - Main Module")
+    print("Author: Aqshal Ikhsan")
+    print("=" * 60)
+    
+    # Example: BFS
+    print("\n[1] Breadth-First Search Example:")
+    graph = {
+        'A': ['B', 'C'],
+        'B': ['D', 'E'],
+        'C': ['F'],
+        'D': [],
+        'E': ['F'],
+        'F': []
+    }
+    path = SearchAlgorithms.bfs(graph, 'A', 'F')
+    print(f"Path from A to F: {path}")
+    
+    # Example: DFS
+    print("\n[2] Depth-First Search Example:")
+    path = SearchAlgorithms.dfs(graph, 'A', 'F')
+    print(f"Path from A to F: {path}")
+    
+    # Example: A*
+    print("\n[3] A* Search Example:")
+    weighted_graph = {
+        'A': [('B', 1), ('C', 4)],
+        'B': [('D', 2), ('E', 5)],
+        'C': [('F', 3)],
+        'D': [],
+        'E': [('F', 1)],
+        'F': []
+    }
+    heuristic = {'A': 7, 'B': 6, 'C': 2, 'D': 5, 'E': 1, 'F': 0}
+    path = SearchAlgorithms.astar(weighted_graph, 'A', 'F', heuristic)
+    print(f"Path from A to F: {path}")
+    
+    # Example: Data processing
+    print("\n[4] Machine Learning Example:")
+    X = np.random.randn(100, 5)
+    y = np.random.randint(0, 2, 100)
+    X_train, X_test, y_train, y_test = MachineLearning.train_test_split(X, y, test_size=0.2)
+    print(f"Training set size: {len(X_train)}")
+    print(f"Test set size: {len(X_test)}")
+    
+    # Example: Normalization
+    print("\n[5] Data Normalization Example:")
+    X_normalized = MachineLearning.normalize(X)
+    print(f"Original data range: [{X.min():.2f}, {X.max():.2f}]")
+    print(f"Normalized data range: [{X_normalized.min():.2f}, {X_normalized.max():.2f}]")
+    
+    print("\n" + "=" * 60)
+    print("Module demonstration complete!")
+    print("=" * 60)
+
+
+if __name__ == "__main__":
+    main()
